@@ -1,0 +1,177 @@
+import React, { useState, useEffect } from 'react';
+import AdminAuthLayout from '@/Layouts/Admin/AdminAuthLayout';
+import DeleteModal from '@/Components/Admin/DeleteModal';
+import CustomSelect from '@/Components/CustomSelect';
+import TextInput from '@/Components/TextInput';
+import InputError from '@/Components/InputError';
+import { Head, Link, useForm, } from '@inertiajs/react';
+import AdminPageNavs from '@/Components/Admin/AdminPageNavs';
+import AdminProductCard from "@/Components/Admin/AdminProductCard";
+import CoporateCode from '@/Pages/Company/Register/CoporateCode';
+import BlockModal from '@/Components/Admin/BlockModal';
+import AcceptModal from '@/Components/Admin/AcceptModal';
+
+export default function Index({
+    products,
+    companies,
+}) {
+    const companyOptions = [
+        {id: 0, coporate_name: 'すべて'},
+        ...companies
+    ];
+
+    const [isOpenAcceptModal, setIsOpenAcceptModal] = useState(false);
+    const [isAcceptSelected, setIsAcceptSelected] = useState(null);
+    const [selectedAcceptProduct, setSelectedAcceptProduct] = useState(null);
+    const [selectedType, setSelectedType] = useState(null);
+    const toggleAcceptModal = (index, product, type) => {
+        setIsOpenAcceptModal(prevState => !prevState);
+        setIsAcceptSelected(index);
+        setSelectedType(type);
+        setSelectedAcceptProduct(product);
+    }
+
+    const params = new URLSearchParams(location.search);
+    const { data, setData, get, processing, errors, reset } = useForm({
+        keyword: params.get('keyword') ?? '',
+        status: params.get('status') ?? 9,
+        company: params.get('company') ?? '',
+    });
+
+    const handleSetData = (key, value) => {
+        setData({
+            ...data,
+            [key]: value
+        });
+    }
+
+    const submit = () => {
+        get(route('admin.products.requested'), {
+            onFinish: () => {
+            },
+        });
+    }
+
+    const acceptForm = useForm();
+
+    const acceptProduct = () => {
+        acceptForm.post(route('admin.products.accept', [selectedAcceptProduct.id]), {
+            onFinish: () => {
+                setIsOpenAcceptModal(false);
+            },
+        });
+    }    
+
+    const rejectProduct = () => {
+        acceptForm.post(route('admin.products.reject', [selectedAcceptProduct.id]), {
+            onFinish: () => {
+                setIsOpenAcceptModal(false);
+            },
+        });
+    }    
+
+    return (
+        <AdminAuthLayout>
+            <div className="w-[92%] mx-auto mt-[24px] pb-[50px] bg-white border border-gray-200 rounded-lg shadow-md">
+                <div className="border-b border-gray-200 px-[4%] py-4">
+                    <h3 className=" text-lg font-semibold text-gray-600">登録申請一覧</h3>
+                </div>
+                <div className="px-[4%] py-4 flex items-center gap-4">
+                    <div className="flex flex-col ">
+                        <div className="text-[12px]">企業名</div>                        
+                        <div className="relative text-[14px]">
+                            <select
+                                value={data.company}
+                                onChange={(e) => handleSetData('company', e.target.value)}
+                                className={
+                                    "w-[200px] mt-1 text-[14px] appearance-none px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
+                                }
+                            >   
+                                {companyOptions.map((option, index) => (
+                                    <option key={option.id + "-" + index} value={option.id}>
+                                        {option.coporate_name}
+                                    </option>
+                                ))}
+                            </select>
+                            <InputError message={errors.company} className="mt-2" />
+                        </div>
+                    </div>
+                    <div className="flex flex-col ">
+                        <div className="text-[12px]">キーワード</div>
+                        <div className="relative text-[14px] max-w-[500px]">
+                            <TextInput
+                                type="text"
+                                name="keyword"
+                                value={data.keyword}
+                                className="mt-1 block w-full pr-8"
+                                placeholder="名前やメールで検索"
+                                onChange={(e) => handleSetData('keyword', e.target.value)}
+                            />
+                            <InputError message={errors.business_name} className="mt-2" />
+                        </div>
+                    </div>
+                    <div className="flex flex-col ">
+                        <div className="text-[12px] min-h-6"></div>
+                        <button
+                            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:opacity-75"
+                            onClick={submit}
+                        >
+                            検索
+                        </button>
+                    </div>
+                    
+                </div>
+                <div className="w-[92%] mx-auto mt-4 mb-6">
+                    {products.data.length > 0 ? (
+                        <table className="min-w-full table-auto border-collapse border border-gray-200">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                <th className="border text-left px-4 py-2">No</th>
+                                <th className="border text-left px-4 py-2">写真</th>
+                                <th className="border text-left px-4 py-2">商材名</th>
+                                <th className="border text-left px-4 py-2">企業名</th>
+                                <th className="border text-left px-4 py-2">概括</th>
+                                <th className="border text-left px-4 py-2">紹介報酬</th>
+                                <th className="border text-left px-4 py-2">ステータス</th>
+                                <th className="border text-left px-4 py-2">アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                { products.data.map((product, index) => (
+                                    <tr key={product.id} className="hover:bg-gray-50">
+                                        <td className="border px-4 py-2">{(products.current_page - 1) * products.per_page + index + 1 }</td>
+                                        <td className="border px-4 py-2">
+                                            <img 
+                                                src={product.main_image}
+                                                alt="Product"
+                                                className="min-w-20 h-16 rounded-md object-cover" />
+                                        </td>
+                                        <td className="border px-4 py-2">{ product.name }</td>
+                                        <td className="border px-4 py-2">{ product.company?.coporate_name }</td>
+                                        <td className="border px-4 py-2">{product.overview}</td>
+                                        <td className="border px-4 py-2">
+                                            { product?.reward_type === 1 && `￥${product?.reward_amount}` }
+                                            { product?.reward_type === 2 && `${product?.reward_amount}%` }
+                                        </td>
+                                        <td className="border px-4 py-2">{product.status_label}</td>
+                                        <td className="border px-4 py-2">
+                                            <Link href={route('admin.products.show', [product.id])} className="text-blue-500 hover:text-blue-700">詳細</Link>
+                                            <button onClick={() => toggleAcceptModal((products.current_page - 1) * products.per_page + index + 1, product, '許可') } className="ml-2 text-cyan-500 hover:text-blue-700">許可</button>
+                                            <button onClick={() => toggleAcceptModal((products.current_page - 1) * products.per_page + index + 1, product, '不許') } className="ml-2 text-red-500 hover:text-blue-700">不許</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <div className="text-center text-[16px] py-4">データがありません。</div>
+                    )}
+
+                </div>
+
+            </div>
+            <AdminPageNavs items={products} />
+            <AcceptModal data={isAcceptSelected} type={selectedType} isOpen={isOpenAcceptModal} onClose={toggleAcceptModal} onSubmit={selectedType == '許可' ? acceptProduct : rejectProduct} />
+        </AdminAuthLayout>
+    );
+}
