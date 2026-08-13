@@ -1,0 +1,26 @@
+#
+# This file provides an application definition that can be used with
+# PM2 ("Production Process Manager").
+# 
+# PM2 "allows you to keep applications alive forever, to reload them 
+# without downtime and to facilitate common system admin tasks."
+# 
+# Use this file by running it with PM2. For example:
+# $> pm2 start laravel-queue-worker.pm2.yml
+#
+# Then you can use PM2 commands to manage the process:
+# $> pm2 restart "my-laravel-queue-worker"
+# $> pm2 status "my-laravel-queue-worker"
+# $> pm2 logs "my-laravel-queue-worker"
+#
+
+apps:
+  - name: jobscape
+    script: artisan
+    exec_mode: fork
+    interpreter: php
+    instances: 1
+    args:
+      - queue:work
+      - --tries=5
+      - --sleep=1
